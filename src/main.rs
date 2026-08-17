@@ -124,21 +124,17 @@ fn handle_line(line: &str, cfg: &Config, fetch_worker: &FetchWorker) {
 }
 
 fn maybe_fetch(event: GerritEventType, cfg: &Config, fetch_worker: &FetchWorker) {
-    let (change, patch_set) = match event {
-        GerritEventType::PatchsetCreated {
-            change, patch_set, ..
-        } => (change, patch_set),
-        GerritEventType::ChangeMerged {
-            change, patch_set, ..
-        } => (change, patch_set),
+    let project = match &event {
+        GerritEventType::PatchsetCreated { change, .. } => &change.project,
+        GerritEventType::ChangeMerged { change, .. } => &change.project,
         _ => return,
     };
 
-    if change.project == cfg.project {
+    if project == cfg.project.as_str() {
         fetch_worker.enqueue(FetchRequest {
             repo_dir: cfg.git_repo.clone(),
             remote: cfg.git_remote.clone(),
-            ref_name: patch_set.ref_name,
+            event,
         })
     }
 }

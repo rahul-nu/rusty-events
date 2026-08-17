@@ -1,13 +1,15 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Ok, Result};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::mpsc::{self, Sender};
 use std::thread::JoinHandle;
 
+use crate::events::GerritEventType;
+
 pub struct FetchRequest {
     pub repo_dir: PathBuf,
     pub remote: String,
-    pub ref_name: String,
+    pub event: GerritEventType,
 }
 
 pub struct FetchWorker {
@@ -23,7 +25,7 @@ impl FetchWorker {
 
         let handle = std::thread::spawn(move || {
             for req in rx {
-                if let Err(e) = fetch_ref(&req.repo_dir, &req.remote, &req.ref_name) {
+                if let Err(e) = fetch_ref(&req.repo_dir, &req.remote, req.event) {
                     eprintln!("warning: {e:#}");
                 }
             }
@@ -58,65 +60,93 @@ impl FetchWorker {
     }
 }
 
-fn fetch_ref(repo_dir: &Path, remote: &str, ref_name: &str) -> Result<()> {
-    let (_, name) = ref_name.split_at_checked(5).unwrap();
-    let output = Command::new("git")
-        .arg("fetch")
-        .arg(remote)
-        .arg(format!("{ref_name}:{name}"))
-        .current_dir(repo_dir)
-        .output()
-        .with_context(|| {
-            format!(
-                "spawning `git fetch {remote} {ref_name}` in {}",
-                repo_dir.display()
-            )
-        })?;
+fn fetch_ref(repo_dir: &Path, remote: &str, event: GerritEventType) -> Result<()> {
+    match event {
+        GerritEventType::PatchsetCreated { patch_set, .. } => {
+            let ref_name = patch_set.ref_name;
+            let (_, name) = ref_name.split_at_checked(5).unwrap();
+            let output = Command::new("git")
+                .arg("fetch")
+                .arg(remote)
+                .arg(format!("{ref_name}:{name}"))
+                .current_dir(repo_dir)
+                .output()
+                .with_context(|| {
+                    format!(
+                        "spawning `git fetch {remote} {ref_name}` in {}",
+                        repo_dir.display()
+                    )
+                })?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("git fetch {ref_name} failed: {stderr}");
-    }
-    let output = Command::new("jj")
-        .arg("tag")
-        .arg("set")
-        .arg("-r")
-        .arg(name)
-        .arg(name)
-        .current_dir(repo_dir)
-        .output()
-        .with_context(|| {
-            format!(
-                "spawning `git fetch {remote} {ref_name}` in {}",
-                repo_dir.display()
-            )
-        })?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("jj tag set -r {ref_name} {ref_name}: {stderr}");
-    }
-    let output = Command::new("jj")
-        .arg("bookmark")
-        .arg("forget")
-        .arg(name)
-        .current_dir(repo_dir)
-        .output()
-        .with_context(|| {
-            format!(
-                "spawning `git fetch {remote} {ref_name}` in {}",
-                repo_dir.display()
-            )
-        })?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("jj bookmark forget {ref_name} failed: {stderr}");
-    }
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                anyhow::bail!("git fetch {ref_name} failed: {stderr}");
+            }
+            let output = Command::new("jj")
+                .arg("tag")
+                .arg("set")
+                .arg("-r")
+                .arg(name)
+                .arg(name)
+                .current_dir(repo_dir)
+                .output()
+                .with_context(|| {
+                    format!(
+                        "spawning `git fetch {remote} {ref_name}` in {}",
+                        repo_dir.display()
+                    )
+                })?;
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                anyhow::bail!("jj tag set -r {ref_name} {ref_name}: {stderr}");
+            }
+            let output = Command::new("jj")
+                .arg("bookmark")
+                .arg("forget")
+                .arg(name)
+                .current_dir(repo_dir)
+                .output()
+                .with_context(|| {
+                    format!(
+                        "spawning `git fetch {remote} {ref_name}` in {}",
+                        repo_dir.display()
+                    )
+                })?;
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                anyhow::bail!("jj bookmark forget {ref_name} failed: {stderr}");
+            }
+            let output = Command::new("jj")
+                .arg("git")
+                .arg("fetch")
+                .current_dir(repo_dir)
+                .output()
+                .with_context(|| "spawning `jj git fetch to clean out")?;
 
-    if output.status.success() {
-        eprintln!("fetched {ref_name}");
-        Ok(())
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("git fetch {ref_name} failed: {stderr}");
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                anyhow::bail!("jj bookmark forget {ref_name} failed: {stderr}");
+            }
+
+            if output.status.success() {
+                eprintln!("fetched {ref_name}");
+            }
+            Ok(())
+        }
+        GerritEventType::ChangeMerged { .. } => {
+            let output = Command::new("jj")
+                .arg("git")
+                .arg("fetch")
+                .current_dir(repo_dir)
+                .output()
+                .with_context(|| "spawning `jj git fetch to clean out")?;
+
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                anyhow::bail!("jj git fetch failed: {stderr}");
+            };
+            Ok(())
+        }
+        _ => Ok(()),
     }
 }
