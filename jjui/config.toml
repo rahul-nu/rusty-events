@@ -1,0 +1,41 @@
+[[actions]]
+name = "gerrit-normal"
+lua = '''
+revset.set("gerrit_normal")
+'''
+
+[[actions]]
+name = "gerrit-all"
+lua = '''
+revset.set("fork_point(all() ~ ::main@origin | main@origin |tags())::'")
+'''
+
+[[actions]]
+name = "gerrit-hidden"
+lua = '''
+revset.set("fork_point(all() ~ ::main@origin | main@origin | tags()) ::")
+'''
+
+[[bindings]]
+action = "gerrit-normal"
+key = "1"
+scope = "revisions"
+desc = "Gerrit: normal"
+
+[[bindings]]
+action = "gerrit-all"
+key = "2"
+scope = "revisions"
+desc = "Gerrit: all"
+
+[[bindings]]
+action = "gerrit-hidden"
+key = "3"
+scope = "revisions"
+desc = "Gerrit: hidden"
+
+gerrit_all = 'fork_point(all() ~ ::main@origin | main@origin |tags())::'
+#
+# gerrit_normal = 'fork_point((all() ~ ::main@origin | main@origin |tags())):: ~ tags("hidden/*")'
+#
+# gerrit_hidden = 'tags("hidden/*")| main@origin'
