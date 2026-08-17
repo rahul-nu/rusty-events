@@ -1,0 +1,25 @@
+host = "review.gerrithub.io"
+port = 29418
+username = "rahul-nu"
+private_key = "/home/rahul/.ssh/id_ed25519"
+subscribe = [
+  "change-abandoned",
+  "change-deleted",
+  "change-merged",
+  "change-restored",
+  "dropped-output",
+  "comment-added",
+  "patchset-created",
+  "ref-updated",
+  "batch-ref-updated",
+  "reviewer-added",
+  "reviewer-deleted",
+  "topic-changed",
+  "wip-state-changed",
+  "private-state-changed",
+  "vote-deleted",
+]
+
+project = "Bit2trades/demo-cr"
+git_repo = "/home/rahul/app/demo-cr/"
+git_remote = "origin"
