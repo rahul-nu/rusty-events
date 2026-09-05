@@ -1,10 +1,15 @@
-use crate::approval::{Account, Approval};
-use crate::model::{Change, ChangeKey, PatchSet, RefUpdate, Status};
+mod approval;
+mod model;
+use approval::{Account, Approval};
+use model::{Change, ChangeKey, PatchSet, RefUpdate};
 use serde::{Deserialize, Serialize};
+
+use enum_field_getter::EnumFieldGetter;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(tag = "type")]
-pub enum GerritEventType {
+#[derive(EnumFieldGetter)]
+pub enum GerritEvent {
     #[serde(rename = "change-abandoned")]
     #[serde(rename_all = "camelCase")]
     ChangeAbandoned {
@@ -42,6 +47,7 @@ pub enum GerritEventType {
     #[serde(rename_all = "camelCase")]
     CommentAdded {
         author: Account,
+        #[serde(default)]
         approvals: Vec<Approval>,
         comment: Option<String>,
         patch_set: PatchSet,
@@ -57,36 +63,36 @@ pub enum GerritEventType {
         patch_set: PatchSet,
         event_created_on: i64,
     },
-    #[serde(rename = "fetch-ref-replicated")]
-    #[serde(rename_all = "camelCase")]
-    FetchRefReplicated {
-        ref_update_result: Status,
-        project: String,
-        #[serde(rename = "ref")]
-        ref_name: String,
-        status: String,
-        target_uri: String,
-        event_created_on: i64,
-        instance_id: String,
-    },
-    #[serde(rename = "fetch-ref-replication-scheduled")]
-    #[serde(rename_all = "camelCase")]
-    FetchRefReplicationScheduled {
-        project: String,
-        target_uri: String,
-        event_created_on: i64,
-        instance_id: String,
-    },
-    #[serde(rename = "ref-replication-scheduled")]
-    #[serde(rename_all = "camelCase")]
-    RefReplicationScheduled {
-        event_created_on: i64,
-        instance_id: String,
-        target_uri: String,
-        #[serde(rename = "ref")]
-        ref_name: String,
-        project: String,
-    },
+    // #[serde(rename = "fetch-ref-replicated")]
+    // #[serde(rename_all = "camelCase")]
+    // FetchRefReplicated {
+    //     ref_update_result: Status,
+    //     project: String,
+    //     #[serde(rename = "ref")]
+    //     ref_name: String,
+    //     status: String,
+    //     target_uri: String,
+    //     event_created_on: i64,
+    //     instance_id: String,
+    // },
+    // #[serde(rename = "fetch-ref-replication-scheduled")]
+    // #[serde(rename_all = "camelCase")]
+    // FetchRefReplicationScheduled {
+    //     project: String,
+    //     target_uri: String,
+    //     event_created_on: i64,
+    //     instance_id: String,
+    // },
+    // #[serde(rename = "ref-replication-scheduled")]
+    // #[serde(rename_all = "camelCase")]
+    // RefReplicationScheduled {
+    //     event_created_on: i64,
+    //     instance_id: String,
+    //     target_uri: String,
+    //     #[serde(rename = "ref")]
+    //     ref_name: String,
+    //     project: String,
+    // },
     #[serde(rename = "hashtags-changed")]
     #[serde(rename_all = "camelCase")]
     HashtagsChanged {
@@ -185,4 +191,10 @@ pub enum GerritEventType {
         new_head: String,
         event_created_on: i64,
     },
+}
+
+impl GerritEvent {
+    pub fn project(&self) -> Option<&String> {
+        Some(&self.change()?.project)
+    }
 }

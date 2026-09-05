@@ -4,30 +4,36 @@ use std::path::PathBuf;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
-    pub host: String,
-    #[serde(default = "default_port")]
-    pub port: u16,
-    pub username: String,
-    pub private_key: PathBuf,
-    pub public_key: Option<PathBuf>,
-    pub passphrase: Option<String>,
-    /// Event types to subscribe to, e.g. ["patchset-created", "comment-added"].
-    /// Empty or omitted means subscribe to all events.
-    #[serde(default)]
-    pub subscribe: Vec<String>,
-    pub project: String,
-    /// Local path to a git repo/bare mirror where refs should be fetched into.
-    #[serde(default = "default_remote")]
-    pub git_remote: String,
-    pub git_repo: PathBuf,
+    pub gerrit_server: String,
+    pub project_root: PathBuf,
+    pub repo: String,
+    #[serde(default = "origin")]
+    pub remote_name: String,
+    #[serde(default = "default_events")]
+    pub events: Vec<String>,
+}
+fn origin() -> String {
+    "origin".to_owned()
 }
 
-fn default_port() -> u16 {
-    29418
-}
-
-fn default_remote() -> String {
-    "origin".to_string()
+fn default_events() -> Vec<String> {
+    vec![
+        "change-abandoned".to_string(),
+        "change-deleted".to_string(),
+        "change-merged".to_string(),
+        "change-restored".to_string(),
+        "dropped-output".to_string(),
+        "comment-added".to_string(),
+        "patchset-created".to_string(),
+        "ref-updated".to_string(),
+        "batch-ref-updated".to_string(),
+        "reviewer-added".to_string(),
+        "reviewer-deleted".to_string(),
+        "topic-changed".to_string(),
+        "wip-state-changed".to_string(),
+        "private-state-changed".to_string(),
+        "vote-deleted".to_string(),
+    ]
 }
 
 impl Config {
@@ -36,28 +42,6 @@ impl Config {
             .with_context(|| format!("reading config file at {}", path.display()))?;
         let cfg: Config = toml::from_str(&text)
             .with_context(|| format!("parsing config file at {}", path.display()))?;
-        cfg.validate()?;
         Ok(cfg)
-    }
-
-    fn validate(&self) -> Result<()> {
-        for event in &self.subscribe {
-            if event.is_empty() || !event.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
-                anyhow::bail!(
-                    "invalid entry in `subscribe`: {event:?} (expected an event type like \"patchset-created\")"
-                );
-            }
-        }
-        Ok(())
-    }
-
-    /// Builds the `gerrit stream-events [-s ...]` command to exec over SSH.
-    pub fn stream_events_command(&self) -> String {
-        let mut cmd = String::from("gerrit stream-events");
-        for event in &self.subscribe {
-            cmd.push_str(" -s ");
-            cmd.push_str(event);
-        }
-        cmd
     }
 }

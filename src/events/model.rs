@@ -1,4 +1,5 @@
-use crate::approval::{Account, Approval};
+use super::approval::{Account, Approval};
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -23,6 +24,7 @@ pub struct Change {
     pub status: Status,
     pub private: Option<bool>,
     pub wip: Option<bool>,
+    // pub patch_sets: Vec<PatchSet>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -37,12 +39,12 @@ pub enum Status {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PatchSet {
-    pub number: u32,
+    pub number: u16,
     pub revision: String,
     #[serde(default)]
     pub parents: Vec<String>,
     #[serde(rename = "ref")]
-    pub ref_name: String,
+    pub ref_string: String,
     pub uploader: Account,
     pub author: Option<Account>,
     pub created_on: i64,
@@ -51,6 +53,25 @@ pub struct PatchSet {
     pub approvals: Vec<Approval>,
     // pub size_insertions: Option<i64>,
     // pub size_deletions: Option<i64>,
+}
+impl PatchSet {
+    pub fn split(&self) -> Result<(u32, u16)> {
+        let mut parts = self.ref_string.split('/').skip(3);
+
+        let change_num: u32 = parts
+            .next()
+            .context("missing second segment")?
+            .parse()
+            .context("failed to parse second segment as u32")?;
+
+        let patch_num: u16 = parts
+            .next()
+            .context("missing third segment")?
+            .parse()
+            .context("failed to parse third segment as u16")?;
+
+        Ok((change_num, patch_num))
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
