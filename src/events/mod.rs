@@ -1,43 +1,57 @@
 mod approval;
 mod model;
 use approval::{Account, Approval};
-use model::{Change, ChangeKey, PatchSet, RefUpdate};
+pub use model::{Change, ChangeKey, PatchSet, RefUpdate};
 use serde::{Deserialize, Serialize};
-
-use enum_field_getter::EnumFieldGetter;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(tag = "type")]
-#[derive(EnumFieldGetter)]
-pub enum GerritEvent {
+#[serde(bound(deserialize = "'de: 'a"))]
+pub enum GerritEvent<'a> {
     #[serde(rename = "change-abandoned")]
     #[serde(rename_all = "camelCase")]
     ChangeAbandoned {
-        change: Change,
-        patch_set: PatchSet,
-        abandoner: Account,
-        reason: String,
+        #[serde(borrow)]
+        change: Change<'a>,
+        #[serde(borrow)]
+        patch_set: PatchSet<'a>,
+        #[serde(borrow)]
+        abandoner: Account<'a>,
+        #[serde(borrow)]
+        reason: &'a str,
         event_created_on: i64,
     },
     #[serde(rename = "change-deleted")]
     #[serde(rename_all = "camelCase")]
-    ChangeDeleted { change: Change, deleter: Account },
+    ChangeDeleted {
+        #[serde(borrow)]
+        change: Change<'a>,
+        #[serde(borrow)]
+        deleter: Account<'a>,
+    },
     #[serde(rename = "change-merged")]
     #[serde(rename_all = "camelCase")]
     ChangeMerged {
-        change: Change,
-        patch_set: PatchSet,
-        submitter: Account,
+        #[serde(borrow)]
+        change: Change<'a>,
+        #[serde(borrow)]
+        patch_set: PatchSet<'a>,
+        #[serde(borrow)]
+        submitter: Account<'a>,
         new_rev: String,
         event_created_on: i64,
     },
     #[serde(rename = "change-restored")]
     #[serde(rename_all = "camelCase")]
     ChangeRestored {
-        change: Change,
-        patch_set: PatchSet,
-        restorer: Account,
-        reason: String,
+        #[serde(borrow)]
+        change: Change<'a>,
+        #[serde(borrow)]
+        patch_set: PatchSet<'a>,
+        #[serde(borrow)]
+        restorer: Account<'a>,
+        #[serde(borrow)]
+        reason: &'a str,
         event_created_on: i64,
     },
     #[serde(rename = "dropped-output")]
@@ -46,21 +60,29 @@ pub enum GerritEvent {
     #[serde(rename = "comment-added")]
     #[serde(rename_all = "camelCase")]
     CommentAdded {
-        author: Account,
-        #[serde(default)]
-        approvals: Vec<Approval>,
-        comment: Option<String>,
-        patch_set: PatchSet,
-        change: Change,
+        #[serde(borrow)]
+        author: Account<'a>,
+        #[serde(default, borrow)]
+        approvals: Vec<Approval<'a>>,
+        #[serde(default, borrow)]
+        comment: Option<&'a str>,
+        #[serde(borrow)]
+        patch_set: PatchSet<'a>,
+        #[serde(borrow)]
+        change: Change<'a>,
         event_created_on: i64,
-        instance_id: String,
+        #[serde(borrow)]
+        instance_id: &'a str,
     },
     #[serde(rename = "patchset-created")]
     #[serde(rename_all = "camelCase")]
     PatchsetCreated {
-        uploader: Account,
-        change: Change,
-        patch_set: PatchSet,
+        #[serde(borrow)]
+        uploader: Account<'a>,
+        #[serde(borrow)]
+        change: Change<'a>,
+        #[serde(borrow)]
+        patch_set: PatchSet<'a>,
         event_created_on: i64,
     },
     // #[serde(rename = "fetch-ref-replicated")]
@@ -96,105 +118,158 @@ pub enum GerritEvent {
     #[serde(rename = "hashtags-changed")]
     #[serde(rename_all = "camelCase")]
     HashtagsChanged {
-        change: Change,
-        editor: Account,
-        #[serde(default)]
-        added: Vec<String>,
-        #[serde(default)]
-        removed: Vec<String>,
-        #[serde(default)]
-        hashtags: Vec<String>,
+        #[serde(borrow)]
+        change: Change<'a>,
+        #[serde(borrow)]
+        editor: Account<'a>,
+        #[serde(default, borrow)]
+        added: Vec<&'a str>,
+        #[serde(default, borrow)]
+        removed: Vec<&'a str>,
+        #[serde(default, borrow)]
+        hashtags: Vec<&'a str>,
         event_created_on: i64,
     },
     #[serde(rename = "project-created")]
     #[serde(rename_all = "camelCase")]
     ProjectCreated {
-        project_name: String,
-        project_head: String,
+        #[serde(borrow)]
+        project_name: &'a str,
+        #[serde(borrow)]
+        project_head: &'a str,
         event_created_on: i64,
     },
     #[serde(rename = "ref-updated")]
     #[serde(rename_all = "camelCase")]
     RefUpdated {
-        submitter: Option<Account>,
-        ref_update: RefUpdate,
+        #[serde(default, borrow)]
+        submitter: Option<Account<'a>>,
+        #[serde(borrow)]
+        ref_update: RefUpdate<'a>,
         event_created_on: i64,
     },
     #[serde(rename = "reviewer-added")]
     #[serde(rename_all = "camelCase")]
     ReviewerAdded {
-        change: Change,
-        patch_set: PatchSet,
-        reviewer: Account,
-        adder: Account,
+        #[serde(borrow)]
+        change: Change<'a>,
+        #[serde(borrow)]
+        patch_set: PatchSet<'a>,
+        #[serde(borrow)]
+        reviewer: Account<'a>,
+        #[serde(borrow)]
+        adder: Account<'a>,
         event_created_on: i64,
     },
     #[serde(rename = "reviewer-deleted")]
     #[serde(rename_all = "camelCase")]
     ReviewerDeleted {
-        change: Change,
-        patch_set: PatchSet,
-        reviewer: Account,
-        remover: Account,
-        #[serde(default)]
-        approvals: Vec<Approval>,
-        comment: Option<String>,
+        #[serde(borrow)]
+        change: Change<'a>,
+        #[serde(borrow)]
+        patch_set: PatchSet<'a>,
+        #[serde(borrow)]
+        reviewer: Account<'a>,
+        #[serde(borrow)]
+        remover: Account<'a>,
+        #[serde(default, borrow)]
+        approvals: Vec<Approval<'a>>,
+        #[serde(borrow)]
+        comment: Option<&'a str>,
         event_created_on: i64,
     },
     #[serde(rename = "topic-changed")]
     #[serde(rename_all = "camelCase")]
     TopicChanged {
-        change: Change,
-        changer: Account,
-        old_topic: Option<String>,
+        #[serde(borrow)]
+        change: Change<'a>,
+        #[serde(borrow)]
+        changer: Account<'a>,
+        #[serde(borrow)]
+        old_topic: Option<&'a str>,
         event_created_on: i64,
     },
     #[serde(rename = "batch-ref-updated")]
     #[serde(rename_all = "camelCase")]
     BatchRefUpdated {
-        submitter: Option<Account>,
-        ref_updates: Vec<RefUpdate>,
+        #[serde(borrow)]
+        submitter: Option<Account<'a>>,
+        #[serde(borrow)]
+        ref_updates: Vec<RefUpdate<'a>>,
         event_created_on: i64,
     },
     #[serde(rename = "wip-state-changed")]
     #[serde(rename_all = "camelCase")]
     WipStateChanged {
-        change: Change,
-        patch_set: PatchSet,
-        changer: Account,
+        #[serde(borrow)]
+        change: Change<'a>,
+        #[serde(borrow)]
+        patch_set: PatchSet<'a>,
+        #[serde(borrow)]
+        changer: Account<'a>,
         event_created_on: i64,
     },
     #[serde(rename = "private-state-changed")]
     #[serde(rename_all = "camelCase")]
     PrivateStateChanged {
-        change: Change,
-        patch_set: PatchSet,
-        changer: Account,
+        #[serde(borrow)]
+        change: Change<'a>,
+        #[serde(borrow)]
+        patch_set: PatchSet<'a>,
+        #[serde(borrow)]
+        changer: Account<'a>,
         event_created_on: i64,
-        change_key: ChangeKey,
+        #[serde(borrow)]
+        change_key: ChangeKey<'a>,
     },
     #[serde(rename = "vote-deleted")]
     #[serde(rename_all = "camelCase")]
     VoteDeleted {
-        change: Change,
-        patch_set: PatchSet,
-        reviewer: Account,
-        remover: Account,
+        #[serde(borrow)]
+        change: Change<'a>,
+        #[serde(borrow)]
+        patch_set: PatchSet<'a>,
+        #[serde(borrow)]
+        reviewer: Account<'a>,
+        #[serde(borrow)]
+        remover: Account<'a>,
         #[serde(default)]
-        approvals: Vec<Approval>,
-        comment: Option<String>,
+        #[serde(borrow)]
+        approvals: Vec<Approval<'a>>,
+        #[serde(borrow)]
+        comment: Option<&'a str>,
     },
     #[serde(rename = "project-head-updated")]
     #[serde(rename_all = "camelCase")]
     ProjectHeadUpdated {
-        old_head: String,
-        new_head: String,
+        #[serde(borrow)]
+        old_head: &'a str,
+        #[serde(borrow)]
+        new_head: &'a str,
         event_created_on: i64,
     },
 }
 
-impl GerritEvent {
-    pub fn project(&self) -> Option<&String> {
-        Some(&self.change()?.project)
+impl<'a> GerritEvent<'a> {
+    pub fn project(&'a self) -> Option<&'a str> {
+        match self {
+            GerritEvent::RefUpdated { ref_update, .. } => Some(ref_update.project),
+            GerritEvent::BatchRefUpdated { ref_updates, .. } => Some(ref_updates.first()?.project),
+            GerritEvent::ChangeAbandoned { change, .. }
+            | GerritEvent::ChangeMerged { change, .. }
+            | GerritEvent::ChangeDeleted { change, .. }
+            | GerritEvent::ChangeRestored { change, .. }
+            | GerritEvent::CommentAdded { change, .. }
+            | GerritEvent::ReviewerAdded { change, .. }
+            | GerritEvent::ReviewerDeleted { change, .. }
+            | GerritEvent::TopicChanged { change, .. }
+            | GerritEvent::WipStateChanged { change, .. }
+            | GerritEvent::PrivateStateChanged { change, .. }
+            | GerritEvent::VoteDeleted { change, .. }
+            | GerritEvent::PatchsetCreated { change, .. }
+            | GerritEvent::HashtagsChanged { change, .. } => Some(change.project),
+            GerritEvent::ProjectCreated { project_name, .. } => Some(project_name),
+            GerritEvent::DroppedOutput { .. } | GerritEvent::ProjectHeadUpdated { .. } => None,
+        }
     }
 }

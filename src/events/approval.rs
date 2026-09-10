@@ -55,22 +55,26 @@ mod approval_value_opt {
 }
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Approval {
-    #[serde(rename = "type")]
-    pub kind: String,
-    pub description: Option<String>,
+pub struct Approval<'a> {
+    #[serde(rename = "type", borrow)]
+    pub kind: &'a str,
+    #[serde(borrow)]
+    pub description: Option<&'a str>,
     #[serde(with = "approval_value")]
     pub value: i8,
     #[serde(default, with = "approval_value_opt")]
     pub old_value: Option<i8>,
     pub granted_on: Option<i64>,
-    pub by: Option<Account>,
+    #[serde(borrow)]
+    pub by: Option<Account<'a>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Account {
-    pub name: Option<String>,
-    pub email: Option<String>,
+pub struct Account<'a> {
+    #[serde(borrow)]
+    pub name: Option<&'a str>,
+    #[serde(borrow)]
+    pub email: Option<&'a str>,
     pub username: String,
 }
