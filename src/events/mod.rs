@@ -1,7 +1,7 @@
 mod approval;
 mod model;
 use approval::{Account, Approval};
-pub use model::{Change, ChangeKey, PatchSet, RefUpdate};
+pub use model::{Change, ChangeKey, ChangeMin, PatchSet, RefUpdate};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -33,12 +33,15 @@ pub enum GerritEvent<'a> {
     #[serde(rename_all = "camelCase")]
     ChangeMerged {
         #[serde(borrow)]
-        change: Change<'a>,
+        submitter: Account<'a>,
+        #[serde(borrow)]
+        new_rev: &'a str,
         #[serde(borrow)]
         patch_set: PatchSet<'a>,
         #[serde(borrow)]
-        submitter: Account<'a>,
-        new_rev: String,
+        change: Change<'a>,
+        #[serde(borrow)]
+        change_key: ChangeKey<'a>,
         event_created_on: i64,
     },
     #[serde(rename = "change-restored")]

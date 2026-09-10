@@ -76,5 +76,5 @@ pub struct Account<'a> {
     pub name: Option<&'a str>,
     #[serde(borrow)]
     pub email: Option<&'a str>,
-    pub username: String,
+    pub username: &'a str,
 }

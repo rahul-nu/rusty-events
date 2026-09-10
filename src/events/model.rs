@@ -1,4 +1,4 @@
-use super::approval::{Account, Approval};
+use super::approval::Account;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -7,32 +7,80 @@ pub struct ChangeKey<'a> {
     #[serde(borrow)]
     pub id: &'a str,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChangeMin<'a> {
+    #[serde(borrow)]
+    pub project: &'a str,
+
+    #[serde(borrow)]
+    pub branch: &'a str,
+
+    #[serde(borrow, default)]
+    pub topic: Option<&'a str>,
+
+    #[serde(borrow)]
+    pub id: &'a str,
+
+    pub number: u32,
+
+    #[serde(borrow)]
+    pub subject: &'a str,
+
+    #[serde(borrow)]
+    pub owner: Account<'a>,
+
+    #[serde(borrow)]
+    pub url: &'a str,
+
+    #[serde(borrow, default)]
+    pub hashtags: Vec<&'a str>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Change<'a> {
     #[serde(borrow)]
     pub project: &'a str,
+
     #[serde(borrow)]
     pub branch: &'a str,
-    #[serde(borrow)]
+
+    #[serde(borrow, default)]
     pub topic: Option<&'a str>,
+
     #[serde(borrow)]
     pub id: &'a str,
+
+    pub number: u32,
+
     #[serde(borrow)]
     pub subject: &'a str,
-    pub number: u32,
+
     #[serde(borrow)]
     pub owner: Account<'a>,
+
     #[serde(borrow)]
     pub url: &'a str,
+
     #[serde(borrow)]
     pub commit_message: &'a str,
-    #[serde(borrow)]
-    pub hashtags: Option<Vec<&'a str>>,
-    pub created_on: i64,
-    pub last_updated: Option<i64>,
+
+    #[serde(borrow, default)]
+    pub hashtags: Vec<&'a str>,
+
+    pub created_on: u64,
+
+    #[serde(default)]
+    pub last_updated: Option<u64>,
+
     pub status: Status,
+
+    #[serde(default)]
     pub private: Option<bool>,
+
+    #[serde(default)]
     pub wip: Option<bool>,
     // pub patch_sets: Vec<PatchSet>,
 }
@@ -62,11 +110,11 @@ pub struct PatchSet<'a> {
     pub uploader: Account<'a>,
     #[serde(borrow)]
     pub author: Option<Account<'a>>,
-    pub created_on: i64,
+    pub created_on: u64,
     pub kind: Option<PatchSetKind>,
-    #[serde(default)]
-    #[serde(borrow)]
-    pub approvals: Vec<Approval<'a>>,
+    // #[serde(default)]
+    // #[serde(borrow)]
+    // pub approvals: Vec<Approval<'a>>,
     // pub size_insertions: Option<i64>,
     // pub size_deletions: Option<i64>,
 }
